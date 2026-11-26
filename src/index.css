@@ -99,9 +99,9 @@ button { cursor: pointer; }
 .line-node { flex: 1; flex-direction: column; align-items: center; gap: 4px; min-width: 36px; }
 .line-node small { position: relative; z-index: 1; color: inherit; font-size: 8px; line-height: 1; white-space: nowrap; }
 .line-segment { position: absolute; top: 4px; left: calc(50% + 7px); width: calc(100% - 14px); margin: 0; }
-.process-connector.alert::after { content: ""; position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; border: 2px solid #fff; background: #c95748; transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 0 1px #e8b8b2; }
-.line-segment.alert { position: relative; background: #c95748; }
-.line-segment.alert::after { content: ""; position: absolute; top: 50%; left: 50%; width: 7px; height: 7px; border: 2px solid #fff; background: #c95748; transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 0 1px #e8b8b2; }
+.process-connector.blocked-segment::after { content: "⚠️"; position: absolute; top: -13px; left: 50%; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #fff; font-size: 12px; line-height: 1; transform: translateX(-50%); filter: drop-shadow(0 1px 2px rgba(74, 45, 18, .18)); }
+.line-segment.stage-alert-segment { position: relative; background: #c95748; }
+.line-segment.stage-alert-segment::after { content: "⚠️"; position: absolute; top: -12px; left: 50%; display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: #fff; font-size: 11px; line-height: 1; transform: translateX(-50%); filter: drop-shadow(0 1px 2px rgba(74, 45, 18, .18)); }
 .row-copy { display: flex !important; flex-direction: column; align-items: flex-start !important; gap: 3px !important; }
 .row-copy b { color: #697884; font-size: 10px; font-weight: 400; }
 .row-copy small { color: #a97921; font-size: 8px; line-height: 1.2; white-space: nowrap; }
