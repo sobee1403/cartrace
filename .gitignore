@@ -13,9 +13,18 @@
 # testing
 /coverage
 
-# next.js
+# build output
 /.next/
+/dist/
 /out/
+/output/
+/tmp/
+
+# one-off document generation scripts
+/build_solution_plan_pdf.py
+
+# private domain notes
+/document/private/
 
 # production
 /build
