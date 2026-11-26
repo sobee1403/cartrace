@@ -155,6 +155,7 @@ const notificationGroups = [{ label: "권리·선적 차단", tone: "danger", co
 
 function getActionState(vehicle: Vehicle, approvalRequested: boolean): { label: string; disabled: boolean } {
   if (vehicle.blocked || vehicle.rights === "압류 이력") return { label: "선적 차단됨 · 권리 해소 필요", disabled: true };
+  if (vehicle.rights === "미조회") return { label: "매입 확정 보류 · 매입 전 권리 조회 필요", disabled: true };
   if (vehicle.risk?.includes("금액")) return { label: "매입 확정 보류 · 금액 검토 필요", disabled: true };
   if (vehicle.risk?.includes("권리")) return { label: "선적 준비 보류 · 권리 재조회 필요", disabled: true };
   if (vehicle.missing.includes("수출신고필증")) return { label: "선적 준비 보류 · 수출신고필증 필요", disabled: true };
