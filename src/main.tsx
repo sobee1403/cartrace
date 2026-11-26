@@ -23,7 +23,7 @@ const vehicles: Vehicle[] = [
   { id: "v4", vin: "JHMCM56557C402918", model: "혼다 어코드", year: 2017, purchaseType: "딜러", stage: "수출 준비", assignee: "김영업", risk: "압류 이력 발견 — 선적 차단", tone: "danger", missing: [], amount: "정상", rights: "압류 이력", blocked: true, paymentType: "계좌이체", country: "몽골", buyer: "Ulaanbaatar Auto", shipDate: "12/01", availableDate: "권리 해소 후", estimatedMargin: "₩3,100,000", contractAmount: 30000000, paymentAmount: 30000000, invoiceUsd: 22400, exchangeRate: 1392, exchangeRateDate: "11/24" },
 ];
 
-type HistoryEvent = { id: string; at: string; actor: string; action: string; reason?: string };
+type HistoryEvent = { id: string; at: string; actor: string; action: string; reason?: string; stage?: Stage; target?: string; reviewer?: string; due?: string };
 type ApprovalRequest = { id: string; vehicleId: string; stage: Stage; requester: string; reviewer: string; requestedAt: string; due: string; status: "검토 대기" | "승인" | "반려"; reason?: string };
 
 function readStored<T>(key: string, fallback: T): T {
@@ -33,6 +33,13 @@ function readStored<T>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function getApprovalTarget(stage: Stage): string {
+  if (stage === "매입" || stage === "재고") return "매입 확정";
+  if (stage === "수출 준비") return "선적 준비";
+  if (stage === "선적") return "선적 완료";
+  return "사후 증빙 종결";
 }
 
 function getOperationalAlerts(currentVehicles: Vehicle[], approvalRequests: ApprovalRequest[] = []): OperationalAlert[] {
@@ -83,6 +90,10 @@ function App() {
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filtered = liveVehicles.filter((v) => (filter === "전체" || v.stage === filter) && (!normalizedSearch || [v.model, v.vin, v.assignee].some((value) => value.toLowerCase().includes(normalizedSearch))));
   const notificationItems = getOperationalAlerts(liveVehicles, approvalRequests);
+  const selectedHistory = (historyByVehicle[liveSelected.id] ?? []).map((event) => {
+    const request = approvalRequests.find((item) => item.id === event.id || event.id.startsWith(`${item.id}-`));
+    return request ? { ...event, stage: request.stage, target: getApprovalTarget(request.stage), reviewer: request.reviewer, due: request.due } : event;
+  });
 const notificationGroups = [{ label: "권리·선적 차단", tone: "danger", count: notificationItems.filter((item) => item.category === "권리" || item.category === "선적").length }, { label: "매입 검증", tone: "danger", count: notificationItems.filter((item) => item.category === "매입").length }, { label: "사후 증빙", tone: "warning", count: notificationItems.filter((item) => item.category === "증빙").length }].filter((group) => group.count > 0);
   useEffect(() => { localStorage.setItem("cartrace:registeredVehicles", JSON.stringify(registeredVehicles)); }, [registeredVehicles]);
   useEffect(() => { localStorage.setItem("cartrace:stageByVehicle", JSON.stringify(stageByVehicle)); }, [stageByVehicle]);
@@ -100,7 +111,7 @@ const notificationGroups = [{ label: "권리·선적 차단", tone: "danger", co
       ...current,
       [liveSelected.id]: [
         ...(current[liveSelected.id] ?? []),
-        { id: request.id, at: request.requestedAt, actor: request.requester, action: "승인 요청", reason: `${request.reviewer} 검토 대기` },
+        { id: request.id, at: request.requestedAt, actor: request.requester, action: "승인 요청", reason: `${request.reviewer} 검토 대기`, stage: request.stage, target: getApprovalTarget(request.stage), reviewer: request.reviewer, due: request.due },
       ],
     }));
   };
@@ -113,14 +124,14 @@ const notificationGroups = [{ label: "권리·선적 차단", tone: "danger", co
       ...current,
       [liveSelected.id]: [
         ...(current[liveSelected.id] ?? []),
-        { id: `${request.id}-${status}`, at: "방금 전", actor: request.reviewer, action: status, reason: reason ?? "검토 완료" },
+        { id: `${request.id}-${status}`, at: "방금 전", actor: request.reviewer, action: status, reason: reason ?? "검토 완료", stage: request.stage, target: getApprovalTarget(request.stage), reviewer: request.reviewer, due: request.due },
       ],
     }));
   };
 
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="brand"><img src="/cartrace-logo.png" alt="CarTrace" /><span><small>smart export ERP</small></span></div>
+      <div className="brand"><img src="/cartrace-logo.png" alt="CarTrace" /></div>
       <p className="side-label">WORKSPACE</p>
       <button className={tab === "vehicles" ? "nav active" : "nav"} onClick={() => setTab("vehicles")}>▦ <span>차량 업무</span></button>
       <p className="side-hint">미결 알림은 우측 상단 벨에서 확인합니다.</p>
@@ -135,7 +146,7 @@ const notificationGroups = [{ label: "권리·선적 차단", tone: "danger", co
           <div className="toolbar"><input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="차량명, VIN, 담당자 검색" /><div>{(["전체", "매입", "재고", "수출 준비", "선적", "증빙"] as const).map((s) => <button className={filter === s ? "chosen" : ""} key={s} onClick={() => setFilter(s)}>{s}</button>)}</div></div>
           <div className="table-head"><span>차량 / VIN</span><span>단계</span><span>검증 상태</span><span>담당자</span></div>
           {filtered.length ? filtered.map((vehicle) => <button className={liveSelected.id === vehicle.id ? "vehicle selected" : "vehicle"} key={vehicle.id} onClick={() => setSelected(vehicle)}><span><b>{vehicle.model}</b><small>{vehicle.year} · {vehicle.vin}</small></span><em className={`stage ${vehicle.stage === "수출 준비" ? "수출준비" : vehicle.stage}`}>{vehicle.stage}</em><span className="check"><i className={vehicle.tone ?? "ok"}>{vehicle.tone === "danger" ? "!" : vehicle.tone === "warning" ? "·" : "✓"}</i>{vehicle.risk ?? "검증 완료"}</span><span>{vehicle.assignee}　›</span></button>) : <div className="empty-state">일치하는 차량이 없습니다.<small>차량명, VIN, 담당자 중 하나로 다시 검색해 주세요.</small></div>}
-        </section><Detail vehicle={liveSelected} allEvidence={allVehicles.find((item) => item.id === liveSelected.id)?.missing ?? liveSelected.missing} approvalRequested={approvalRequestedByVehicle[liveSelected.id] ?? approvalRequests.some((request) => request.vehicleId === liveSelected.id && request.status === "검토 대기")} approvalRequest={approvalRequests.find((request) => request.vehicleId === liveSelected.id && request.status === "검토 대기")} uploadedFile={uploadedFileByVehicle[liveSelected.id]} history={historyByVehicle[liveSelected.id] ?? []} onEvidenceUploaded={(vehicle, item, fileName) => { const remaining = vehicle.missing.filter((document) => document !== item); setMissingByVehicle((current) => ({ ...current, [vehicle.id]: remaining })); setUploadedFileByVehicle((current) => ({ ...current, [vehicle.id]: `${item} · ${fileName}` })); setSelected({ ...vehicle, missing: remaining }); }} onRequestApproval={requestApproval} onApprovalDecision={decideApproval} /></div>
+        </section><Detail vehicle={liveSelected} allEvidence={allVehicles.find((item) => item.id === liveSelected.id)?.missing ?? liveSelected.missing} approvalRequested={approvalRequestedByVehicle[liveSelected.id] ?? approvalRequests.some((request) => request.vehicleId === liveSelected.id && request.status === "검토 대기")} approvalRequest={approvalRequests.find((request) => request.vehicleId === liveSelected.id && request.status === "검토 대기")} uploadedFile={uploadedFileByVehicle[liveSelected.id]} history={selectedHistory} onEvidenceUploaded={(vehicle, item, fileName) => { const remaining = vehicle.missing.filter((document) => document !== item); setMissingByVehicle((current) => ({ ...current, [vehicle.id]: remaining })); setUploadedFileByVehicle((current) => ({ ...current, [vehicle.id]: `${item} · ${fileName}` })); setSelected({ ...vehicle, missing: remaining }); }} onRequestApproval={requestApproval} onApprovalDecision={decideApproval} /></div>
         {registrationOpen && <VehicleRegistration onClose={() => setRegistrationOpen(false)} onSubmit={(vehicle) => { if (allVehicles.some((item) => item.vin === vehicle.vin)) { setRegistrationError("이미 등록된 VIN입니다."); return; } setRegisteredVehicles((current) => [...current, vehicle]); setHistoryByVehicle((current) => ({ ...current, [vehicle.id]: [{ id: `history-${vehicle.id}`, at: "방금 전", actor: "김영업", action: "차량 등록", reason: "신규 매입 등록" }] })); setSelected(vehicle); setRegistrationOpen(false); setFilter("전체"); setSearchTerm(""); }} error={registrationError} />}
       </> : <AlertsV2 vehicles={liveVehicles} approvalRequests={approvalRequests} mode={alertMode} onModeChange={setAlertMode} onSelect={(id) => { const found = allVehicles.find((v) => v.id === id.split("-")[0]); if (found) { setSelected(found); setTab("vehicles"); } }} />}
     </main>
@@ -183,11 +194,11 @@ function Detail({ vehicle, allEvidence, approvalRequested, approvalRequest, uplo
 
 function ApprovalPanel({ request, onDecision }: { request: ApprovalRequest; onDecision: (status: "승인" | "반려", reason?: string) => void }) {
   const [reason, setReason] = useState("");
-  return <section className="approval-panel"><div><b>회계 검토 대기</b><small>{request.reviewer} · 요청 {request.requestedAt} · 기한 {request.due}</small></div><div className="approval-actions"><button onClick={() => onDecision("승인")}>승인</button><input aria-label="반려 사유" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="반려 사유" /><button disabled={!reason.trim()} onClick={() => onDecision("반려", reason.trim())}>반려</button></div></section>;
+  return <section className="approval-panel"><div><b>{getApprovalTarget(request.stage)} 승인 검토</b><small>대상 단계 {request.stage} · 요청자 {request.requester}</small><small>검토자 {request.reviewer} · 요청 {request.requestedAt} · 기한 {request.due}</small></div><div className="approval-actions"><button onClick={() => onDecision("승인")}>승인</button><input aria-label="반려 사유" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="반려 사유" /><button disabled={!reason.trim()} onClick={() => onDecision("반려", reason.trim())}>반려</button></div></section>;
 }
 
 function History({ events }: { events: HistoryEvent[] }) {
-  return <div className="history">{events.length ? events.map((event) => <div className="history-item" key={event.id}><time>{event.at}</time><span><b>{event.action}</b><small>{event.actor}{event.reason ? ` · ${event.reason}` : ""}</small></span></div>) : <small className="history-empty">아직 확인·변경 기록이 없습니다.</small>}</div>;
+  return <div className="history">{events.length ? events.map((event) => <div className="history-item" key={event.id}><time>{event.at}</time><span><b>{event.action}{event.target ? ` · ${event.target}` : ""}</b><small>{event.stage ? `대상 단계 ${event.stage}` : ""}{event.reviewer ? ` · 검토자 ${event.reviewer}` : ` · ${event.actor}`}{event.due ? ` · 기한 ${event.due}` : ""}</small>{event.reason && <small className="history-reason">사유 · {event.reason}</small>}</span></div>) : <small className="history-empty">아직 확인·변경 기록이 없습니다.</small>}</div>;
 }
 
 function getNextStage(stage: Stage): Stage { const stages: Stage[] = ["매입", "재고", "수출 준비", "선적", "증빙"]; return stages[Math.min(stages.indexOf(stage) + 1, stages.length - 1)]; }
