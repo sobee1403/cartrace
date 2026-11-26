@@ -15,12 +15,12 @@ button { cursor: pointer; }
 
 .app-shell { display: flex; min-height: 100vh; background: #f4f6f8; }
 .sidebar { width: 238px; flex: 0 0 238px; padding: 24px 14px; background: #101923; color: #dbe4ec; display: flex; flex-direction: column; }
-.brand { display: flex; align-items: center; gap: 10px; padding: 4px 12px 26px; border-bottom: 1px solid #253340; }
+.brand { display: flex; align-items: center; gap: 10px; margin: 0 4px; padding: 8px 10px; border: 1px solid #dce5ec; border-radius: 8px; background: #fff; }
 .brand img { display: block; width: 152px; height: 39px; object-fit: contain; object-position: left center; }
 .brand span { display: block; }
 .brand > b { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 6px; background: #d6e7ff; color: #1d4f86; font-size: 11px; }
 .brand strong, .brand small, .user span, .user small { display: block; }
-.brand strong { color: #f5f8fb; font-size: 16px; letter-spacing: -.03em; }.brand small { margin-top: 3px; color: #81909e; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+.brand strong { color: #f5f8fb; font-size: 16px; letter-spacing: -.03em; }.brand small { margin-top: 3px; color: #6d7d89; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
 .side-label { margin: 25px 12px 9px; color: #758594; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
 .nav { display: flex; align-items: center; gap: 11px; width: 100%; margin: 2px 0; padding: 10px 12px; border: 0; border-left: 2px solid transparent; background: transparent; color: #9eacb9; text-align: left; font-size: 12px; }.nav:hover, .nav.active { border-left-color: #83b6eb; background: #1c2b39; color: #f4f8fc; }.nav em { margin-left: auto; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #d6e7ff; color: #1d4f86; font-size: 9px; font-style: normal; font-weight: 800; }
 .side-hint { margin: 13px 12px 0; color: #70808e; font-size: 10px; line-height: 1.55; }
